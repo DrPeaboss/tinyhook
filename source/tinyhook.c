@@ -61,10 +61,8 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
     info->old_entry = *(LONG64*)&hook_jump;
 #ifdef _CPU_X64
     DWORD old_bridge;
-    BYTE jump_pattern[14] = { 0x68,0,0,0,0,0xC7,0x44,0x24,0x04,0,0,0,0,0xC3 };
-    UINT_PTR uiptr = (UINT_PTR)fk_proc;
-    *(DWORD*)&jump_pattern[1] = (DWORD)uiptr;
-    *(DWORD*)&jump_pattern[9] = (DWORD)(uiptr >> 32);
+    BYTE jump_pattern[14] = { 0xFF,0x25,0,0,0,0,0,0,0,0,0,0,0,0 };
+    *(void**)&jump_pattern[6] = fk_proc;
     VirtualProtect(bridge, 14, PAGE_EXECUTE_READWRITE, &old_bridge);
     memcpy(bridge, jump_pattern, 14);
     VirtualProtect(bridge, 14, old_bridge, &old_bridge);
@@ -121,10 +119,8 @@ void TH_GetDetour(TH_Info* info, void** detour)
         detour_to = (char*)info->proc + entry_len;
     }
 #ifdef _CPU_X64
-    BYTE jump_pattern[14] = { 0x68,0,0,0,0,0xC7,0x44,0x24,0x04,0,0,0,0,0xC3 };
-    UINT_PTR uiptr = (UINT_PTR)detour_to;
-    *(DWORD*)&jump_pattern[1] = (DWORD)uiptr;
-    *(DWORD*)&jump_pattern[9] = (DWORD)(uiptr >> 32);
+    BYTE jump_pattern[14] = { 0xFF,0x25,0,0,0,0,0,0,0,0,0,0,0,0 };
+    *(void**)&jump_pattern[6] = detour_to;
     memcpy(&info->detour[entry_len], jump_pattern, 14);
 #endif
 #ifdef _CPU_X86
