@@ -1,0 +1,19 @@
+# binary
+*.exe
+*.dll
+*.o
+*.a
+*.obj
+*.zip
+
+# visual studio
+.vs/
+x64/
+x86/
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.user

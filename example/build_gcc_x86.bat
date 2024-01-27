@@ -1,0 +1,1 @@
+i686-w64-mingw32-gcc example.c ..\source\tinyhook.c -o example_gcc_x86.exe -O2 -I ..\source

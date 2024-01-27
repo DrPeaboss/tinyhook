@@ -1,0 +1,1 @@
+clang example.c ..\source\tinyhook.c -o example_clang_x86.exe -O2 -I ..\source -l user32 --target=i386-pc-win32
