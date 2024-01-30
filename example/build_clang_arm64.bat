@@ -1,0 +1,1 @@
+clang example.c ..\source\tinyhook.c -o example_clang_arm64.exe -O2 -I ..\source -l user32 --target=aarch64-pc-win32

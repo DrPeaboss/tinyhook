@@ -27,8 +27,7 @@ int main()
 #ifdef _CPU_X86
     TH_Init(&hook_gfw, GetProcAddress(h_user32, "GetForegroundWindow"), fk_GetForegroundWindow, NULL);
     TH_Init(&hook_mba, GetProcAddress(h_user32, "MessageBoxA"), fk_MessageBoxA, NULL);
-#endif
-#ifdef _CPU_X64
+#else
     char* padding = TH_GetModulePadding(h_user32);
     TH_Init(&hook_gfw, GetProcAddress(h_user32, "GetForegroundWindow"), fk_GetForegroundWindow, padding);
     TH_Init(&hook_mba, GetProcAddress(h_user32, "MessageBoxA"), fk_MessageBoxA, padding + 16);

@@ -21,6 +21,9 @@ SOFTWARE.
 *******************************************************************************/
 
 #include "tinyhook.h"
+
+#if defined(_CPU_X86) || defined(_CPU_X64)
+
 #include "insn_len.h"
 
 static int GetEntryLen(void* addr)
@@ -33,7 +36,26 @@ static int GetEntryLen(void* addr)
     return len;
 }
 
+static inline void* SkipFF25(void* proc)
+{
+    DWORD offset = *(DWORD*)((BYTE*)proc + 2);
 #ifdef _CPU_X64
+    return *(void**)((BYTE*)proc + offset + 6);
+#endif
+#ifdef _CPU_X86
+    return *(void**)offset;
+#endif
+}
+
+#elif defined(_CPU_ARM64)
+
+#define LDR_X16_NEXT2 0x58000050 // LDR X16, [PC + #8]
+#define BR_X16        0xD61F0200 // BR X16
+#define LONG_JUMP_X16 ((LONG64)BR_X16 << 32 | LDR_X16_NEXT2)
+
+#endif
+
+#if defined(_CPU_X64) || defined(_CPU_ARM64)
 void* TH_GetModulePadding(HMODULE hmodule)
 {
     BYTE* p = (BYTE*)hmodule;
@@ -55,9 +77,10 @@ void* TH_GetModulePadding(HMODULE hmodule)
 
 void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
 {
+    info->proc = proc;
+#if defined(_CPU_X64) || defined(_CPU_X86)
     BYTE hook_jump[8];
     memcpy(hook_jump, proc, 8);
-    info->proc = proc;
     info->old_entry = *(LONG64*)&hook_jump;
 #ifdef _CPU_X64
     DWORD old_bridge;
@@ -73,32 +96,44 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
 #endif
     hook_jump[0] = 0xE9;
     info->hook_jump = *(LONG64*)&hook_jump;
+#elif defined(_CPU_ARM64)
+    DWORD old_bridge;
+    DWORD hook_jump = 0x14000000;
+    info->old_entry = *(long*)proc;
+    VirtualProtect(bridge, 16, PAGE_EXECUTE_READWRITE, &old_bridge);
+    *(LONG64*)bridge = LONG_JUMP_X16;
+    *((LONG64*)bridge + 1) = (LONG64)fk_proc;
+    VirtualProtect(bridge, 16, old_bridge, &old_bridge);
+    hook_jump |= (long)((long*)bridge - (long*)proc) & 0x3FFFFFF;
+    info->hook_jump = hook_jump;
+#endif
 }
 
 void TH_Hook(TH_Info* info)
 {
     DWORD old;
+#if defined(_CPU_X64) || defined(_CPU_X86)
     VirtualProtect(info->proc, 8, PAGE_EXECUTE_READWRITE, &old);
     InterlockedCompareExchange64((volatile LONG64*)info->proc, info->hook_jump, info->old_entry);
     VirtualProtect(info->proc, 8, old, &old);
+#elif defined(_CPU_ARM64)
+    VirtualProtect(info->proc, 4, PAGE_EXECUTE_READWRITE, &old);
+    InterlockedCompareExchange((volatile long*)info->proc, info->hook_jump, info->old_entry);
+    VirtualProtect(info->proc, 4, old, &old);
+#endif
 }
 
 void TH_Unhook(TH_Info* info)
 {
     DWORD old;
+#if defined(_CPU_X64) || defined(_CPU_X86)
     VirtualProtect(info->proc, 8, PAGE_EXECUTE_READWRITE, &old);
     InterlockedCompareExchange64((volatile LONG64*)info->proc, info->old_entry, info->hook_jump);
     VirtualProtect(info->proc, 8, old, &old);
-}
-
-static inline void* SkipFF25(void* proc)
-{
-    DWORD offset = *(DWORD*)((BYTE*)proc + 2);
-#ifdef _CPU_X64
-    return *(void**)((BYTE*)proc + offset + 6);
-#endif
-#ifdef _CPU_X86
-    return *(void**)offset;
+#elif defined(_CPU_ARM64)
+    VirtualProtect(info->proc, 4, PAGE_EXECUTE_READWRITE, &old);
+    InterlockedCompareExchange((volatile long*)info->proc, info->old_entry, info->hook_jump);
+    VirtualProtect(info->proc, 4, old, &old);
 #endif
 }
 
@@ -106,6 +141,7 @@ void TH_GetDetour(TH_Info* info, void** detour)
 {
     DWORD old;
     VirtualProtect(info->detour, 32, PAGE_EXECUTE_READWRITE, &old);
+#if defined(_CPU_X64) || defined(_CPU_X86)
     int entry_len;
     void* detour_to;
     WORD* pentry = info->proc;
@@ -127,6 +163,34 @@ void TH_GetDetour(TH_Info* info, void** detour)
     BYTE jump_pattern[5] = { 0xE9,0,0,0,0 };
     *(DWORD*)&jump_pattern[1] = (char*)detour_to - (char*)&info->detour - 5;
     memcpy(&info->detour[entry_len], jump_pattern, 5);
+#endif
+#elif defined(_CPU_ARM64)
+    DWORD* insn = (DWORD*)info->proc;
+    void* detour_to = insn + 1;
+    DWORD* pdetour = (DWORD*)info->detour;
+    if (*insn >> 26 == 5) { // B imm with +- 128MB offset
+        DWORD diff = *insn & 0x3FFFFFF;
+        detour_to = insn + diff;
+    }
+    else if ((*insn & 0x9F000000) == 0x90000000) { // ADRP Xn, PC+imm with +- 4GB offset
+        DWORD imm = ((*insn >> 29) & 3) | ((*insn >> 3) & 0xFFFFC);
+        void* addr = (void*)(((LONG64)insn & 0xFFFFFFFFFFFFF000) + ((LONG64)imm << 12));
+        if (insn[1] >> 22 == 0x3E5) { // LDR Xm, [Xn, #pimm]
+            int pimm = ((insn[1] >> 10) & 0xFFF) * 8;
+            detour_to = *(void**)((BYTE*)addr + pimm);
+        }
+        // not sure with this branch
+        else if (insn[1] >> 22 == 0x284) { // ADD Xm, Xn, #imm12
+            int imm12 = (insn[1] >> 10) & 0xFFF;
+            detour_to = (BYTE*)addr + imm12;
+        }
+    }
+    if (detour_to == insn + 1) { // if not skip any branch
+        *pdetour = *insn;
+        pdetour++;
+    }
+    *(LONG64*)pdetour = LONG_JUMP_X16;
+    *(void**)(pdetour + 2) = detour_to;
 #endif
     *detour = (void*)info->detour;
 }

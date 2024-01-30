@@ -28,6 +28,8 @@ SOFTWARE.
 #define _CPU_X64
 #elif defined(__i386__) || defined(_M_IX86)
 #define _CPU_X86
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#define _CPU_ARM64
 #else
 #error "Unsupported CPU"
 #endif
@@ -36,15 +38,20 @@ typedef struct th_info
 {
     BYTE detour[32];
     void* proc;
+#if defined(_CPU_X64) || defined(_CPU_X86)
     LONG64 hook_jump;
     LONG64 old_entry;
+#elif defined(_CPU_ARM64)
+    long hook_jump;
+    long old_entry;
+#endif
 } TH_Info;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef _CPU_X64
+#if defined(_CPU_X64) || defined(_CPU_ARM64)
 /* get the padding zone in the .text section of a module
 * @param hmodule: the module handle
 * @return pointer to the padding zone which align 16
@@ -56,7 +63,7 @@ void* TH_GetModulePadding(HMODULE hmodule);
 * @param info: the instance of TH_Info struct
 * @param proc: the procedure to hook
 * @param fk_proc: the fake procedure
-* @param bridge: the bridge memory used by x64 only, x86 will be ignored
+* @param bridge: the bridge memory used by x64(+-2GB) and ARM64(+-128MB), x86 will be ignored
 */
 void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge);
 
