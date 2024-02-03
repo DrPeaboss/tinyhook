@@ -79,7 +79,7 @@ void TH_Unhook(TH_Info* info);
 
 /* get the detour to call the original procedure
 * @param info: the TH_Info instance
-* @return the procedure entry pointer
+* @param detour: pointer to the detour entry pointer
 */
 void TH_GetDetour(TH_Info* info, void** detour);
 
