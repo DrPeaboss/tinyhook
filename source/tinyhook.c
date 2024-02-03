@@ -183,7 +183,7 @@ void TH_GetDetour(TH_Info* info, void** detour)
 #endif
 #ifdef _CPU_X86
     BYTE jump_pattern[5] = { 0xE9,0,0,0,0 };
-    *(DWORD*)&jump_pattern[1] = (char*)detour_to - (char*)&info->detour - 5;
+    *(DWORD*)&jump_pattern[1] = (char*)detour_to - (char*)&info->detour - entry_len - 5;
     memcpy(&info->detour[entry_len], jump_pattern, 5);
 #endif
 #elif defined(_CPU_ARM64)
