@@ -73,6 +73,14 @@ void* TH_GetModulePadding(HMODULE hmodule)
     }
     return NULL;
 }
+
+static inline void* FindModuleBase(void* proc)
+{
+    BYTE* p = (BYTE*)((INT_PTR)proc & 0xFFFFFFFFFFFF0000);
+    while (p[0] != 'M' && p[1] != 'Z')
+        p -= 0x10000;
+    return p;
+}
 #endif
 
 void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
@@ -106,6 +114,20 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
     VirtualProtect(bridge, 16, old_bridge, &old_bridge);
     hook_jump |= (long)((long*)bridge - (long*)proc) & 0x3FFFFFF;
     info->hook_jump = hook_jump;
+#endif
+}
+
+void TH_LazyInit(TH_Info* info, void* proc, void* fk_proc, void** detour)
+{
+#if defined(_CPU_X86)
+    TH_Init(info, proc, fk_proc, NULL);
+    TH_GetDetour(info, detour);
+#elif defined(_CPU_X64) || defined(_CPU_ARM64)
+    LONG64* padding = TH_GetModulePadding(FindModuleBase(proc));
+    while (padding[0] != 0 || padding[1] != 0)
+        padding += 2;
+    TH_Init(info, proc, fk_proc, padding);
+    TH_GetDetour(info, detour);
 #endif
 }
 
