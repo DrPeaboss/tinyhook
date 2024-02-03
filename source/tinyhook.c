@@ -169,7 +169,9 @@ void TH_GetDetour(TH_Info* info, void** detour)
     void* detour_to = insn + 1;
     DWORD* pdetour = (DWORD*)info->detour;
     if (*insn >> 26 == 5) { // B imm with +- 128MB offset
-        DWORD diff = *insn & 0x3FFFFFF;
+        int diff = *insn & 0x3FFFFFF;
+        if (diff & 0x2000000) // check negative
+            diff |= 0xFC000000;
         detour_to = insn + diff;
     }
     else if ((*insn & 0x9F000000) == 0x90000000) { // ADRP Xn, PC+imm with +- 4GB offset
