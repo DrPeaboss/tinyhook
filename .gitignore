@@ -6,6 +6,9 @@
 *.obj
 *.zip
 
+# cmake
+*build*/
+
 # visual studio
 .vs/
 x64/
