@@ -117,7 +117,7 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
 #endif
 }
 
-void TH_LazyInit(TH_Info* info, void* proc, void* fk_proc, void** detour)
+void TH_EasyInit(TH_Info* info, void* proc, void* fk_proc, void** detour)
 {
 #if defined(_CPU_X86)
     TH_Init(info, proc, fk_proc, NULL);

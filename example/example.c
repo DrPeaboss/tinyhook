@@ -53,8 +53,8 @@ int main()
     MessageBoxA(NULL, "Hello, World!", "Title", 0);
     TH_Unhook(&hook_mba);
     MessageBoxA(NULL, "Not hooked.", "hmm", 0);
-    // Use TH_LazyInit for any CPU target, it is automatically done
-    TH_LazyInit(&hook_mbp, GetProcAddress(h_user32, "MessageBeep"), fk_MessageBeep, (void**)&dt_MessageBeep);
+    // Use TH_EasyInit for any CPU target, it is automatically done
+    TH_EasyInit(&hook_mbp, GetProcAddress(h_user32, "MessageBeep"), fk_MessageBeep, (void**)&dt_MessageBeep);
     TH_Hook(&hook_mbp);
     Sleep(1000);
     printf("Fake Beeping...\n");

@@ -59,7 +59,7 @@ extern "C" {
 void* TH_GetModulePadding(HMODULE hmodule);
 #endif
 
-/* initialize a TH_Info struct, if do not mind speed, use TH_LazyInit is easier
+/* initialize a TH_Info struct, if do not mind speed, use TH_EasyInit is easier
 * @param info: the instance of TH_Info struct
 * @param proc: the procedure to hook
 * @param fk_proc: the fake procedure
@@ -73,7 +73,7 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge);
 * @param fk_proc: fake proc
 * @param detour: pointer to the detour proc
 */
-void TH_LazyInit(TH_Info* info, void* proc, void* fk_proc, void** detour);
+void TH_EasyInit(TH_Info* info, void* proc, void* fk_proc, void** detour);
 
 /* hook the procedure
 * @param info: the TH_Info instance
