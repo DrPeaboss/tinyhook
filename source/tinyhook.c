@@ -52,6 +52,8 @@ static inline void* SkipFF25(void* proc)
 #define LDR_X16_NEXT2 0x58000050 // LDR X16, [PC + #8]
 #define BR_X16        0xD61F0200 // BR X16
 #define LONG_JUMP_X16 ((LONG64)BR_X16 << 32 | LDR_X16_NEXT2)
+#define LDR_REG_NEXT2 0x58000040 // LDR Xn, [PC + #8]
+#define B_NEXT3       0x14000003 // B [PC + #12]
 
 #endif
 
@@ -208,10 +210,15 @@ void TH_GetDetour(TH_Info* info, void** detour)
             int imm12 = (insn[1] >> 10) & 0xFFF;
             detour_to = (BYTE*)addr + imm12;
         }
+        else { // normal ADRP like MessageBoxA
+            *pdetour++ = LDR_REG_NEXT2 | (*insn & 31);
+            *pdetour++ = B_NEXT3;
+            *(void**)pdetour = addr;
+            pdetour += 2;
+        }
     }
-    if (detour_to == insn + 1) { // if not skip any branch
-        *pdetour = *insn;
-        pdetour++;
+    else {
+        *pdetour++ = *insn;
     }
     *(LONG64*)pdetour = LONG_JUMP_X16;
     *(void**)(pdetour + 2) = detour_to;
