@@ -49,9 +49,9 @@ static inline void* SkipFF25(void* proc)
 
 #elif defined(_CPU_ARM64)
 
-#define LDR_X16_NEXT2 0x58000050 // LDR X16, [PC + #8]
-#define BR_X16        0xD61F0200 // BR X16
-#define LONG_JUMP_X16 ((LONG64)BR_X16 << 32 | LDR_X16_NEXT2)
+#define LDR_X17_NEXT2 0x58000051 // LDR X17, [PC + #8]
+#define BR_X17        0xD61F0220 // BR X17
+#define LONG_JUMP_X17 ((LONG64)BR_X17 << 32 | LDR_X17_NEXT2)
 #define LDR_REG_NEXT2 0x58000040 // LDR Xn, [PC + #8]
 #define B_NEXT3       0x14000003 // B [PC + #12]
 
@@ -111,7 +111,7 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
     DWORD hook_jump = 0x14000000;
     info->old_entry = *(long*)proc;
     VirtualProtect(bridge, 16, PAGE_EXECUTE_READWRITE, &old_bridge);
-    *(LONG64*)bridge = LONG_JUMP_X16;
+    *(LONG64*)bridge = LONG_JUMP_X17;
     *((LONG64*)bridge + 1) = (LONG64)fk_proc;
     VirtualProtect(bridge, 16, old_bridge, &old_bridge);
     hook_jump |= (long)((long*)bridge - (long*)proc) & 0x3FFFFFF;
@@ -220,7 +220,7 @@ void TH_GetDetour(TH_Info* info, void** detour)
     else {
         *pdetour++ = *insn;
     }
-    *(LONG64*)pdetour = LONG_JUMP_X16;
+    *(LONG64*)pdetour = LONG_JUMP_X17;
     *(void**)(pdetour + 2) = detour_to;
 #endif
     *detour = (void*)info->detour;
