@@ -72,7 +72,7 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge);
 * @param info: instance
 * @param proc: proc to hook
 * @param fk_proc: fake proc
-* @param detour: pointer to the detour proc
+* @param detour: pointer to the detour proc, passing NULL if not need
 */
 void TH_EasyInit(TH_Info* info, void* proc, void* fk_proc, void** detour);
 

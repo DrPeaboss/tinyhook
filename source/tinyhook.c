@@ -126,7 +126,8 @@ void TH_EasyInit(TH_Info* info, void* proc, void* fk_proc, void** detour)
     VirtualProtect(padding, 16, PAGE_EXECUTE_READWRITE, &old_bridge_protect);
     TH_Init(info, proc, fk_proc, padding);
     VirtualProtect(padding, 16, old_bridge_protect, &old_bridge_protect);
-    TH_GetDetour(info, detour);
+    if (detour)
+        TH_GetDetour(info, detour);
 #endif
 }
 
