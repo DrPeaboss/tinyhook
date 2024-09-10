@@ -57,6 +57,13 @@ extern "C" {
 * @return pointer to the padding zone which align 16
 */
 void* TH_GetModulePadding(HMODULE hmodule);
+
+/* Search a zone around addr where the specified length of memory is zero.
+* @param addr: The address to search around.
+* @param len: The length of zero memory needed.
+* @return Pointer to the found address.
+*/
+void* TH_SearchZeroAround(void* addr, int len);
 #endif
 
 /* initialize a TH_Info struct, if do not mind speed, use TH_EasyInit is easier

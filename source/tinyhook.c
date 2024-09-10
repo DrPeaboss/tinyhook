@@ -76,6 +76,48 @@ void* TH_GetModulePadding(HMODULE hmodule)
     return NULL;
 }
 
+#ifdef _CPU_X64
+#define SEARCH_RANGE (1ULL << 31)
+#else
+#define SEARCH_RANGE (1ULL << 27)
+#endif
+
+void* TH_SearchZeroAround(void* addr, int len)
+{
+    BYTE* aligned_addr = (BYTE*)((INT_PTR)addr & 0xFFFFFFFFFFFF0000);
+    BYTE* lower_bound = aligned_addr - SEARCH_RANGE + 0x10000;
+    BYTE* upper_bound = aligned_addr + SEARCH_RANGE;
+    for (BYTE* p = lower_bound; p < upper_bound; p += 0x10000) {
+        MEMORY_BASIC_INFORMATION64 info;
+        ZeroMemory(&info, sizeof(info));
+        VirtualQuery(p, &info, sizeof(info));
+        if (info.State == MEM_COMMIT && // Must commit
+            (info.Protect == PAGE_EXECUTE || // And executable
+             info.Protect == PAGE_EXECUTE_READ ||
+             info.Protect == PAGE_EXECUTE_READWRITE ||
+             info.Protect == PAGE_EXECUTE_WRITECOPY))
+        {
+            int count = 0;
+            BYTE* zero_p = p;
+            int i = 0;
+            while (i < info.RegionSize) {
+                if (p[i] != 0) {
+                    count = 0;
+                    i += 16 - i % 16; // Align 16
+                    zero_p = p + i;
+                }
+                else {
+                    count++;
+                    i++;
+                    if (count >= len)
+                        return zero_p;
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
 static inline void* FindModuleBase(void* proc)
 {
     BYTE* p = (BYTE*)((INT_PTR)proc & 0xFFFFFFFFFFFF0000);
