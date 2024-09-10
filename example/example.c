@@ -39,8 +39,12 @@ int main()
 #else
     // If not x86, manually get padding memory as bridge
     char* padding = TH_GetModulePadding(h_user32);
+    DWORD old_protect;
+    // Make sure the memory is writable
+    VirtualProtect(padding, 32, PAGE_EXECUTE_READWRITE, &old_protect);
     TH_Init(&hook_gfw, GetProcAddress(h_user32, "GetForegroundWindow"), fk_GetForegroundWindow, padding);
     TH_Init(&hook_mba, GetProcAddress(h_user32, "MessageBoxA"), fk_MessageBoxA, padding + 16);
+    VirtualProtect(padding, 32, old_protect, &old_protect);
 #endif
     // Don't forget if using TH_Init
     TH_GetDetour(&hook_gfw, (void**)&dt_GetForegroundWindow);
