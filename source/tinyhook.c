@@ -93,12 +93,9 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
     memcpy(hook_jump, proc, 8);
     info->old_entry = *(LONG64*)&hook_jump;
 #ifdef _CPU_X64
-    DWORD old_bridge;
     BYTE jump_pattern[14] = { 0xFF,0x25,0,0,0,0,0,0,0,0,0,0,0,0 };
     *(void**)&jump_pattern[6] = fk_proc;
-    VirtualProtect(bridge, 14, PAGE_EXECUTE_READWRITE, &old_bridge);
     memcpy(bridge, jump_pattern, 14);
-    VirtualProtect(bridge, 14, old_bridge, &old_bridge);
     *(DWORD*)&hook_jump[1] = (DWORD)((char*)bridge - (char*)proc - 5);
 #endif
 #ifdef _CPU_X86
@@ -107,13 +104,10 @@ void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge)
     hook_jump[0] = 0xE9;
     info->hook_jump = *(LONG64*)&hook_jump;
 #elif defined(_CPU_ARM64)
-    DWORD old_bridge;
     DWORD hook_jump = 0x14000000;
     info->old_entry = *(long*)proc;
-    VirtualProtect(bridge, 16, PAGE_EXECUTE_READWRITE, &old_bridge);
     *(LONG64*)bridge = LONG_JUMP_X17;
     *((LONG64*)bridge + 1) = (LONG64)fk_proc;
-    VirtualProtect(bridge, 16, old_bridge, &old_bridge);
     hook_jump |= (long)((long*)bridge - (long*)proc) & 0x3FFFFFF;
     info->hook_jump = hook_jump;
 #endif
@@ -128,7 +122,10 @@ void TH_EasyInit(TH_Info* info, void* proc, void* fk_proc, void** detour)
     LONG64* padding = TH_GetModulePadding(FindModuleBase(proc));
     while (padding[0] != 0 || padding[1] != 0)
         padding += 2;
+    DWORD old_bridge_protect;
+    VirtualProtect(padding, 16, PAGE_EXECUTE_READWRITE, &old_bridge_protect);
     TH_Init(info, proc, fk_proc, padding);
+    VirtualProtect(padding, 16, old_bridge_protect, &old_bridge_protect);
     TH_GetDetour(info, detour);
 #endif
 }

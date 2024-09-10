@@ -63,7 +63,8 @@ void* TH_GetModulePadding(HMODULE hmodule);
 * @param info: the instance of TH_Info struct
 * @param proc: the procedure to hook
 * @param fk_proc: the fake procedure
-* @param bridge: the bridge memory used by x64(+-2GB) and ARM64(+-128MB), x86 will be ignored
+* @param bridge: the bridge memory used by x64(+-2GB) and ARM64(+-128MB), x86 will be ignored,
+* the caller should make sure it is executable and writable
 */
 void TH_Init(TH_Info* info, void* proc, void* fk_proc, void* bridge);
 
