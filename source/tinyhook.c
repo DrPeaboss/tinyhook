@@ -166,11 +166,17 @@ void TH_GetDetour(TH_Info* info, void** detour)
 #if defined(_CPU_X64) || defined(_CPU_X86)
     int entry_len;
     void* detour_to;
-    WORD* pentry = info->proc;
-    if (*pentry == 0x25FF) {
+    BYTE* pentry = info->proc;
+    if (*(WORD*)pentry == 0x25FF) {
         entry_len = 0;
         detour_to = SkipFF25(pentry);
     }
+#ifdef _CPU_X64
+    else if (*pentry == 0x48 && *(WORD*)(pentry + 1) == 0x25FF) {
+        entry_len = 0;
+        detour_to = SkipFF25(pentry + 1);
+    }
+#endif
     else {
         entry_len = GetEntryLen(info->proc);
         memcpy(info->detour, info->proc, entry_len);
